@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+*.whl
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Django
+*.sqlite3
+db.sqlite3
+*.log
+local_settings.py
+media/
+staticfiles/
+*.pot
+*.mo
+
+# Environment variables
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Flutter
+omuz/.dart_tool/
+omuz/.packages
+omuz/.flutter-plugins
+omuz/.flutter-plugins-dependencies
+omuz/build/
+omuz/.metadata
+omuz/android/.gradle/
+omuz/android/app/build/
+omuz/android/build/
+omuz/android/local.properties
+omuz/ios/Pods/
+omuz/ios/.symlinks/
+omuz/ios/Flutter/Flutter.framework
+omuz/ios/Flutter/Flutter.podspec
+omuz/ios/Flutter/Generated.xcconfig
+omuz/ios/Flutter/ephemeral/
+omuz/ios/Flutter/flutter_export_environment.sh
+omuz/.pub-cache/
+omuz/pubspec.lock
+
+# Generated
+*.g.dart
+*.freezed.dart
