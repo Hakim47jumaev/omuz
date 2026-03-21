@@ -1,12 +1,19 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/admin/presentation/admin_categories_screen.dart';
+import '../../features/ai/presentation/ai_mentor_screen.dart';
 import '../../features/admin/presentation/admin_courses_screen.dart';
 import '../../features/admin/presentation/admin_lessons_screen.dart';
 import '../../features/admin/presentation/admin_modules_screen.dart';
 import '../../features/admin/presentation/admin_analytics_screen.dart';
+import '../../features/admin/presentation/admin_discounts_screen.dart';
+import '../../features/admin/presentation/admin_payments_screen.dart';
 import '../../features/admin/presentation/admin_panel_screen.dart';
+import '../../features/admin/presentation/admin_topup_screen.dart';
 import '../../features/admin/presentation/admin_quiz_screen.dart';
+import '../../features/profile/presentation/transactions_screen.dart';
+import '../../features/profile/presentation/notifications_screen.dart';
+import '../../features/profile/presentation/notification_detail_screen.dart';
 import '../../features/resume/presentation/resume_screen.dart';
 import '../../features/resume/presentation/resume_builder_screen.dart';
 import '../../features/resume/presentation/resume_view_screen.dart';
@@ -55,6 +62,22 @@ final GoRouter appRouter = GoRouter(
         return QuizScreen(lessonId: lessonId);
       },
     ),
+    GoRoute(
+      path: '/ai/mentor',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return AiMentorScreen(initialContext: extra);
+      },
+    ),
+    GoRoute(path: '/wallet/transactions', builder: (context, state) => const TransactionsScreen()),
+    GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
+    GoRoute(
+      path: '/notifications/:id',
+      builder: (context, state) {
+        final id = int.parse(state.pathParameters['id']!);
+        return NotificationDetailScreen(id: id);
+      },
+    ),
     GoRoute(path: '/resume', builder: (context, state) => const ResumeScreen()),
     GoRoute(path: '/resume/create', builder: (context, state) => const ResumeBuilderScreen()),
     GoRoute(
@@ -67,6 +90,9 @@ final GoRouter appRouter = GoRouter(
     // Admin routes
     GoRoute(path: '/admin', builder: (context, state) => const AdminPanelScreen()),
     GoRoute(path: '/admin/analytics', builder: (context, state) => const AdminAnalyticsScreen()),
+    GoRoute(path: '/admin/discounts', builder: (context, state) => const AdminDiscountsScreen()),
+    GoRoute(path: '/admin/payments', builder: (context, state) => const AdminPaymentsScreen()),
+    GoRoute(path: '/admin/topup', builder: (context, state) => const AdminTopupScreen()),
     GoRoute(path: '/admin/categories', builder: (context, state) => const AdminCategoriesScreen()),
     GoRoute(path: '/admin/courses', builder: (context, state) => const AdminCoursesScreen()),
     GoRoute(

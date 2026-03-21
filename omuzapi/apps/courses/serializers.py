@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.lessons.models import Lesson
-from .models import Category, Course, Module
+from .models import Category, Course, GlobalDiscount, Module
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -32,10 +32,11 @@ class ModuleSerializer(serializers.ModelSerializer):
 class CourseListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     lessons_count = serializers.SerializerMethodField()
+    is_free = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Course
-        fields = ("id", "title", "description", "image", "category", "lessons_count", "created_at")
+        fields = ("id", "title", "description", "image", "category", "lessons_count", "price", "is_free", "created_at")
 
     def get_lessons_count(self, obj):
         return Lesson.objects.filter(module__course=obj).count()
@@ -44,10 +45,11 @@ class CourseListSerializer(serializers.ModelSerializer):
 class CourseDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     modules = ModuleSerializer(many=True, read_only=True)
+    is_free = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Course
-        fields = ("id", "title", "description", "image", "category", "modules", "created_at")
+        fields = ("id", "title", "description", "image", "preview_video_url", "category", "modules", "price", "is_free", "created_at")
 
 
 # ── Admin write serializers ──
@@ -61,10 +63,27 @@ class AdminCategorySerializer(serializers.ModelSerializer):
 class AdminCourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
-        fields = ("id", "title", "description", "image", "category", "is_published")
+        fields = ("id", "title", "description", "image", "preview_video_url", "price", "category", "is_published")
 
 
 class AdminModuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Module
         fields = ("id", "course", "title", "order")
+
+
+class GlobalDiscountSerializer(serializers.ModelSerializer):
+    is_running = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = GlobalDiscount
+        fields = (
+            "id",
+            "name",
+            "percent",
+            "starts_at",
+            "ends_at",
+            "is_active",
+            "is_running",
+            "created_at",
+        )

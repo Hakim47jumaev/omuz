@@ -20,4 +20,19 @@ class CourseRepository {
       return {};
     }
   }
+
+  Future<Map<String, dynamic>> getSubscription(int courseId) async {
+    final res = await _dio.get(Endpoints.subscription(courseId));
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> purchaseCourse(int courseId) async {
+    final res = await _dio.post(Endpoints.purchase(courseId));
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> renewCourse(int courseId, int days) async {
+    final res = await _dio.post(Endpoints.renew(courseId), data: {'days': days});
+    return res.data as Map<String, dynamic>;
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../auth/providers/auth_provider.dart';
 import '../providers/resume_provider.dart';
 
 class ResumeBuilderScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
 
   // Step 1: Current job
   final _jobCtrl = TextEditingController();
+  int? _selectedUserId;
 
   // Step 2: Personal info
   final _firstNameCtrl = TextEditingController();
@@ -44,8 +46,12 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
   void initState() {
     super.initState();
     final prov = context.read<ResumeProvider>();
+    final auth = context.read<AuthProvider>();
     Future.microtask(() async {
       await prov.loadChoices();
+      if (auth.isStaff) {
+        await prov.loadAdminUsers();
+      }
       if (mounted) setState(() {});
     });
   }
@@ -86,6 +92,14 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
       );
       return;
     }
+    final isStaff = context.read<AuthProvider>().isStaff;
+    if (isStaff && _selectedUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Выберите пользователя для резюме')),
+      );
+      return;
+    }
+
     setState(() => _saving = true);
     final prov = context.read<ResumeProvider>();
     final data = {
@@ -100,6 +114,7 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
       'skills': _selectedSkills.toList(),
       'education': _educationList,
       'work_experience': _workList,
+      if (isStaff) 'user_id': _selectedUserId,
     };
     final id = await prov.createResume(data);
     if (!mounted) return;
@@ -120,6 +135,7 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final prov = context.watch<ResumeProvider>();
+    final isStaff = context.watch<AuthProvider>().isStaff;
 
     return Scaffold(
       appBar: AppBar(
@@ -136,7 +152,7 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
               controller: _pageCtrl,
               physics: const NeverScrollableScrollPhysics(),
               children: [
-                _stepJob(),
+                _stepJob(isStaff, prov),
                 _stepPersonalInfo(cs),
                 _stepEducationLevel(prov, cs),
                 _stepEducationPlaces(cs),
@@ -195,7 +211,7 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
 
   // ── Step 1: Current Job ──
 
-  Widget _stepJob() {
+  Widget _stepJob(bool isStaff, ResumeProvider prov) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -212,6 +228,35 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
               filled: true,
             ),
           ),
+          if (isStaff) ...[
+            const SizedBox(height: 16),
+            Text('Для какого пользователя?',
+                style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              initialValue: _selectedUserId,
+              decoration: InputDecoration(
+                hintText: 'Выберите пользователя',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                filled: true,
+              ),
+              items: prov.adminUsers.map((u) {
+                final id = u['id'] as int;
+                final name =
+                    '${u['first_name'] ?? ''} ${u['last_name'] ?? ''}'.trim();
+                final phone = u['phone']?.toString() ?? '';
+                return DropdownMenuItem<int>(
+                  value: id,
+                  child: Text(
+                    name.isNotEmpty ? '$name ($phone)' : phone,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList(),
+              onChanged: (v) => setState(() => _selectedUserId = v),
+            ),
+          ],
         ],
       ),
     );

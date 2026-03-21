@@ -67,6 +67,10 @@ class _AdminCoursesScreenState extends State<AdminCoursesScreen> {
     final isEdit = course != null;
     final titleC = TextEditingController(text: isEdit ? course['title'] as String : '');
     final descC = TextEditingController(text: isEdit ? (course['description'] as String? ?? '') : '');
+    final previewC = TextEditingController(text: isEdit ? (course['preview_video_url'] as String? ?? '') : '');
+    final priceC = TextEditingController(
+      text: isEdit ? (course['price']?.toString() ?? '0') : '0',
+    );
     int? selectedCatId = isEdit ? course['category'] as int? : null;
 
     showDialog(
@@ -89,6 +93,21 @@ class _AdminCoursesScreenState extends State<AdminCoursesScreen> {
                   maxLines: 3,
                 ),
                 const SizedBox(height: 8),
+                TextField(
+                  controller: previewC,
+                  decoration: const InputDecoration(
+                    labelText: 'Free preview video URL (YouTube)',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: priceC,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Price (TJS, 0 = free)',
+                  ),
+                ),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<int>(
                   decoration: const InputDecoration(labelText: 'Category'),
                   initialValue: selectedCatId,
@@ -109,9 +128,12 @@ class _AdminCoursesScreenState extends State<AdminCoursesScreen> {
             FilledButton(
               onPressed: () async {
                 if (selectedCatId == null || titleC.text.isEmpty) return;
+                final parsedPrice = double.tryParse(priceC.text.trim()) ?? 0;
                 final data = {
                   'title': titleC.text,
                   'description': descC.text,
+                  'preview_video_url': previewC.text.trim(),
+                  'price': parsedPrice < 0 ? 0 : parsedPrice,
                   'category': selectedCatId,
                 };
                 if (isEdit) {

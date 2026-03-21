@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../auth/providers/auth_provider.dart';
@@ -13,6 +14,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  bool _uploadingAvatar = false;
+
   @override
   void initState() {
     super.initState();
@@ -47,48 +50,147 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _buildUserCard(profile),
                   const SizedBox(height: 12),
-                  FilledButton.tonalIcon(
-                    onPressed: () => context.push('/resume'),
-                    icon: const Icon(Icons.description),
-                    label: const Text('My Resume'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                  if (!_isStaff(profile) && prov.wallet != null) ...[
+                    _buildWalletCard(prov.wallet!),
+                    const SizedBox(height: 12),
+                  ],
+                  if (_isStaff(profile))
+                    FilledButton.tonalIcon(
+                      onPressed: () => context.push('/resume'),
+                      icon: const Icon(Icons.description, size: 18),
+                      label: const Text('Резюме'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.tonalIcon(
+                            onPressed: () => context.push('/resume'),
+                            icon: const Icon(Icons.description, size: 18),
+                            label: const Text('Резюме'),
+                            style: FilledButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.tonalIcon(
+                            onPressed: () => context.push('/wallet/transactions'),
+                            icon: const Icon(Icons.receipt_long, size: 18),
+                            label: const Text('Операции'),
+                            style: FilledButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildXPCard(profile['xp'] as Map<String, dynamic>),
-                  const SizedBox(height: 16),
-                  _buildBadges(profile['badges'] as List<dynamic>),
-                  const SizedBox(height: 16),
-                  _buildHistory(profile['xp_history'] as List<dynamic>),
+                  if (!_isStaff(profile)) ...[
+                    const SizedBox(height: 16),
+                    _buildXPCard(profile['xp'] as Map<String, dynamic>),
+                    const SizedBox(height: 16),
+                    _buildBadges(profile['badges'] as List<dynamic>),
+                  ],
+                  if (!_isStaff(profile)) ...[
+                    const SizedBox(height: 16),
+                    _buildHistory(profile['xp_history'] as List<dynamic>),
+                  ],
                 ],
               ),
             ),
     );
   }
 
+  bool _isStaff(Map<String, dynamic> profile) {
+    final user = profile['user'] as Map<String, dynamic>?;
+    return user?['is_staff'] == true;
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1024,
+    );
+    if (file == null || !mounted) return;
+    setState(() => _uploadingAvatar = true);
+    final ok = await context.read<ProfileProvider>().uploadAvatar(file.path);
+    if (!mounted) return;
+    setState(() => _uploadingAvatar = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(ok ? 'Аватар обновлен' : 'Не удалось обновить аватар')),
+    );
+  }
+
   Widget _buildUserCard(Map<String, dynamic> profile) {
     final user = profile['user'] as Map<String, dynamic>;
+    final firstName = ((user['first_name'] as String?) ?? '').trim();
+    final lastName = ((user['last_name'] as String?) ?? '').trim();
+    final initialsSource = firstName.isNotEmpty
+        ? firstName
+        : (lastName.isNotEmpty ? lastName : '?');
+    final fullName = [firstName, lastName].where((e) => e.isNotEmpty).join(' ');
+    final avatarUrl = (user['avatar_url'] as String?)?.trim() ?? '';
+    final hasAvatar = avatarUrl.isNotEmpty;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 28,
-              child: Text(
-                (user['first_name'] as String? ?? '?')[0].toUpperCase(),
-                style: const TextStyle(fontSize: 24),
-              ),
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+                  child: hasAvatar
+                      ? null
+                      : Text(
+                          initialsSource[0].toUpperCase(),
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                ),
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: InkWell(
+                    onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: _uploadingAvatar
+                          ? const Padding(
+                              padding: EdgeInsets.all(5),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.edit, color: Colors.white, size: 14),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 16),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${user['first_name']} ${user['last_name']}',
+                  fullName.isEmpty ? 'Пользователь' : fullName,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 Text(
@@ -101,6 +203,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildWalletCard(Map<String, dynamic> w) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      color: cs.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: cs.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: cs.primary.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.account_balance_wallet, color: cs.primary, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Balance',
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+                  Text(
+                    '${w['balance']} TJS',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: cs.onSurface,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text('Account', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
+                Text(
+                  _formatAccount(w['account_number'] as String),
+                  style: TextStyle(color: cs.onSurface, fontSize: 12, fontFamily: 'monospace'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatAccount(String num) {
+    final buf = StringBuffer();
+    for (var i = 0; i < num.length; i++) {
+      if (i > 0 && i % 4 == 0) buf.write(' ');
+      buf.write(num[i]);
+    }
+    return buf.toString();
   }
 
   Widget _buildXPCard(Map<String, dynamic> xp) {

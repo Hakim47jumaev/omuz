@@ -42,3 +42,10 @@ android {
 flutter {
     source = "../.."
 }
+
+val googleServicesJson = file("google-services.json")
+if (googleServicesJson.exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.lifecycle("google-services.json not found; Firebase Android config is disabled for this build.")
+}

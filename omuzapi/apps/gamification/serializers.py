@@ -27,5 +27,6 @@ class LeaderboardEntrySerializer(serializers.Serializer):
     rank = serializers.IntegerField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
+    avatar_url = serializers.CharField(allow_null=True, required=False)
     total_xp = serializers.IntegerField()
     level = serializers.IntegerField()

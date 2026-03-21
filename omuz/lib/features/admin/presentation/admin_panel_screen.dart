@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../../auth/providers/auth_provider.dart';
 
 class AdminPanelScreen extends StatelessWidget {
   const AdminPanelScreen({super.key});
@@ -7,11 +10,26 @@ class AdminPanelScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Panel')),
+      appBar: AppBar(
+        title: const Text('Admin Panel'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await context.read<AuthProvider>().logout();
+              if (context.mounted) context.go('/login');
+            },
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _tile(context, 'Resume', Icons.description, '/resume'),
           _tile(context, 'Analytics', Icons.analytics, '/admin/analytics'),
+          _tile(context, 'Discounts', Icons.local_offer, '/admin/discounts'),
+          _tile(context, 'Payments', Icons.payments, '/admin/payments'),
+          _tile(context, 'Top Up Users', Icons.account_balance_wallet, '/admin/topup'),
           _tile(context, 'Categories', Icons.category, '/admin/categories'),
           _tile(context, 'Courses', Icons.school, '/admin/courses'),
         ],

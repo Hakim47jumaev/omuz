@@ -40,11 +40,47 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> {
   Widget build(BuildContext context) {
     final prov = context.watch<CourseProvider>();
     final module = _findModule(prov);
+    final course = prov.course;
+    final sub = prov.subscription;
+    final isPaidCourse = (course?['is_free'] == false);
+    final noAccess = isPaidCourse && (sub?['is_active'] != true);
 
-    if (prov.loading || module == null) {
+    if (prov.loading) {
       return Scaffold(
         appBar: AppBar(title: const Text('Module')),
         body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (noAccess) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Module')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Доступ к модулям и урокам закрыт.\nСначала оплатите курс.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (module == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Module')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              prov.hasAccess
+                  ? 'Module not found'
+                  : 'Доступ к модулям закрыт. Сначала оплатите курс.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
       );
     }
 

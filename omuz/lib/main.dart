@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/router/app_router.dart';
+import 'core/services/push_service.dart';
+import 'core/theme/app_theme.dart';
 import 'features/admin/providers/admin_provider.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/courses/providers/course_provider.dart';
@@ -11,8 +13,9 @@ import 'features/profile/providers/profile_provider.dart';
 import 'features/quizzes/providers/quiz_provider.dart';
 import 'features/resume/providers/resume_provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await PushService.initFirebase();
   runApp(const OMuzApp());
 }
 
@@ -35,10 +38,7 @@ class OMuzApp extends StatelessWidget {
       child: MaterialApp.router(
         title: 'OMuz',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorSchemeSeed: Colors.indigo,
-          useMaterial3: true,
-        ),
+        theme: AppTheme.light,
         routerConfig: appRouter,
       ),
     );

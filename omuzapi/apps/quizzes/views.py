@@ -23,12 +23,26 @@ class QuizByLessonView(RetrieveAPIView):
     serializer_class = QuizSerializer
     lookup_field = "lesson_id"
     queryset = Quiz.objects.prefetch_related("questions__answers")
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        if request.user.is_staff:
+            return Response(
+                {"detail": "Квизы доступны только студентам."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().retrieve(request, *args, **kwargs)
 
 
 class QuizSubmitView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        if request.user.is_staff:
+            return Response(
+                {"detail": "Квизы доступны только студентам."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         try:
             quiz = Quiz.objects.prefetch_related("questions__answers").get(pk=pk)
         except Quiz.DoesNotExist:

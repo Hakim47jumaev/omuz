@@ -27,6 +27,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField(max_length=15, unique=True)
     first_name = models.CharField(max_length=50, blank=True)
     last_name = models.CharField(max_length=50, blank=True)
+    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
 
     skills = models.TextField(blank=True, help_text="Comma-separated skills")
 
@@ -82,6 +83,37 @@ SKILL_CHOICES = [
 ]
 
 
+class Wallet(models.Model):
+    user = models.OneToOneField("User", on_delete=models.CASCADE, related_name="wallet")
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    account_number = models.CharField(max_length=20, unique=True)
+
+    def __str__(self):
+        return f"{self.user} — {self.balance} TJS"
+
+
+TRANSACTION_TYPE_CHOICES = [
+    ("topup", "Top Up"),
+    ("purchase", "Course Purchase"),
+    ("renewal", "Subscription Renewal"),
+]
+
+
+class Transaction(models.Model):
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name="transactions")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
+    description = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        sign = "+" if self.amount > 0 else ""
+        return f"{self.wallet.user} {sign}{self.amount} ({self.type})"
+
+
 class Resume(models.Model):
     user = models.ForeignKey("User", on_delete=models.CASCADE, related_name="resumes")
     current_job = models.CharField(max_length=200, blank=True)
@@ -109,3 +141,41 @@ class Resume(models.Model):
 
     def __str__(self):
         return f"Resume: {self.first_name} {self.last_name}"
+
+
+NOTIFICATION_TYPE_CHOICES = [
+    ("payment", "Payment"),
+    ("discount", "Discount"),
+    ("course", "Course"),
+    ("system", "System"),
+]
+
+
+class Notification(models.Model):
+    user = models.ForeignKey("User", on_delete=models.CASCADE, related_name="notifications")
+    title = models.CharField(max_length=120)
+    body = models.TextField()
+    target_route = models.CharField(max_length=255, blank=True)
+    type = models.CharField(max_length=20, choices=NOTIFICATION_TYPE_CHOICES, default="system")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.phone}: {self.title}"
+
+
+class DeviceToken(models.Model):
+    user = models.ForeignKey("User", on_delete=models.CASCADE, related_name="device_tokens")
+    token = models.CharField(max_length=255, unique=True)
+    platform = models.CharField(max_length=20, blank=True, default="android")
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.user.phone} [{self.platform}]"

@@ -6,6 +6,7 @@ class ResumeProvider extends ChangeNotifier {
   final _repo = ResumeRepository();
 
   List<dynamic> resumes = [];
+  List<dynamic> adminUsers = [];
   Map<String, dynamic>? currentResume;
   List<String> skillChoices = [];
   List<Map<String, dynamic>> educationLevelChoices = [];
@@ -22,6 +23,15 @@ class ResumeProvider extends ChangeNotifier {
           .toList();
     } catch (e) {
       debugPrint('CHOICES LOAD ERROR: $e');
+    }
+  }
+
+  Future<void> loadAdminUsers() async {
+    try {
+      adminUsers = await _repo.getUsersForAdminResume();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('ADMIN USERS LOAD ERROR: $e');
     }
   }
 

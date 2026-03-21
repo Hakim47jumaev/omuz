@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_constants.dart';
@@ -33,6 +34,10 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (error, handler) {
+          final uri = error.requestOptions.uri.toString();
+          final status = error.response?.statusCode;
+          final body = error.response?.data;
+          debugPrint('API ERROR [$status] $uri | $body');
           return handler.next(error);
         },
       ),

@@ -36,6 +36,24 @@ class AdminRepository {
     await _dio.delete(Endpoints.adminCourse(id));
   }
 
+  // Discounts
+  Future<List<dynamic>> getDiscounts() async {
+    final res = await _dio.get(Endpoints.adminDiscounts);
+    return res.data as List<dynamic>;
+  }
+
+  Future<void> createDiscount(Map<String, dynamic> data) async {
+    await _dio.post(Endpoints.adminDiscounts, data: data);
+  }
+
+  Future<void> deleteDiscount(int id) async {
+    await _dio.delete(Endpoints.adminDiscount(id));
+  }
+
+  Future<void> updateDiscount(int id, Map<String, dynamic> data) async {
+    await _dio.patch(Endpoints.adminDiscount(id), data: data);
+  }
+
   // Modules
   Future<List<dynamic>> getModules({int? courseId}) async {
     final params = <String, dynamic>{};
@@ -124,5 +142,19 @@ class AdminRepository {
 
   Future<void> deleteAnswer(int id) async {
     await _dio.delete(Endpoints.adminAnswer(id));
+  }
+
+  // Wallet topup
+  Future<List<dynamic>> getUsersWithBalance() async {
+    final res = await _dio.get(Endpoints.adminTopup);
+    return res.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> topUpUser(int userId, double amount) async {
+    final res = await _dio.post(Endpoints.adminTopup, data: {
+      'user_id': userId,
+      'amount': amount,
+    });
+    return res.data as Map<String, dynamic>;
   }
 }

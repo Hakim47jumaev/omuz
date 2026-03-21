@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/services/push_service.dart';
 
 import '../data/auth_repository.dart';
 
@@ -54,6 +55,14 @@ class AuthProvider extends ChangeNotifier {
         firstName: firstName,
         lastName: lastName,
       );
+      final token = await PushService.getToken();
+      if (token != null && token.isNotEmpty) {
+        try {
+          await _repo.registerDeviceToken(token, platform: PushService.platform);
+        } catch (e) {
+          debugPrint('REGISTER DEVICE TOKEN ERROR: $e');
+        }
+      }
       _loading = false;
       notifyListeners();
       return true;
@@ -80,5 +89,13 @@ class AuthProvider extends ChangeNotifier {
     await _repo.logout();
     _user = null;
     notifyListeners();
+  }
+
+  Future<void> registerDeviceToken(String token, {String platform = 'android'}) async {
+    try {
+      await _repo.registerDeviceToken(token, platform: platform);
+    } catch (e) {
+      debugPrint('REGISTER DEVICE TOKEN ERROR: $e');
+    }
   }
 }

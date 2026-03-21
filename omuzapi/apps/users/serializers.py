@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from .models import EDUCATION_LEVEL_CHOICES, SKILL_CHOICES, Resume, User
+from .models import (
+    EDUCATION_LEVEL_CHOICES,
+    SKILL_CHOICES,
+    DeviceToken,
+    Notification,
+    Resume,
+    User,
+)
 
 
 class SendOTPSerializer(serializers.Serializer):
@@ -15,9 +22,19 @@ class VerifyOTPSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+
+    def get_avatar_url(self, obj):
+        if not obj.avatar:
+            return None
+        req = self.context.get("request")
+        if req is not None:
+            return req.build_absolute_uri(obj.avatar.url)
+        return obj.avatar.url
+
     class Meta:
         model = User
-        fields = ("id", "phone", "first_name", "last_name", "is_staff", "date_joined")
+        fields = ("id", "phone", "first_name", "last_name", "avatar_url", "is_staff", "date_joined")
         read_only_fields = fields
 
 
@@ -53,3 +70,16 @@ class ResumeListSerializer(serializers.ModelSerializer):
 class SkillChoicesSerializer(serializers.Serializer):
     skills = serializers.ListField(child=serializers.CharField(), read_only=True)
     education_levels = serializers.ListField(read_only=True)
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ("id", "title", "body", "target_route", "type", "is_read", "created_at")
+        read_only_fields = fields
+
+
+class DeviceTokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeviceToken
+        fields = ("token", "platform")

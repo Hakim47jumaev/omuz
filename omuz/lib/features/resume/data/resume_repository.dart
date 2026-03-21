@@ -46,4 +46,9 @@ class ResumeRepository {
     );
     return path;
   }
+
+  Future<List<dynamic>> getUsersForAdminResume() async {
+    final res = await _dio.get(Endpoints.adminTopup);
+    return res.data as List<dynamic>;
+  }
 }

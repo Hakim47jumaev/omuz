@@ -6,8 +6,15 @@ import '../../../core/api/endpoints.dart';
 class AuthRepository {
   final _dio = ApiClient().dio;
 
+  String _normalizePhone(String phone) {
+    final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return phone.trim();
+    return '+$digits';
+  }
+
   Future<bool> sendOtp(String phone) async {
-    final response = await _dio.post(Endpoints.sendOtp, data: {'phone': phone});
+    final response =
+        await _dio.post(Endpoints.sendOtp, data: {'phone': _normalizePhone(phone)});
     final data = response.data as Map<String, dynamic>;
     return data['is_new'] as bool;
   }
@@ -18,12 +25,15 @@ class AuthRepository {
     String firstName = '',
     String lastName = '',
   }) async {
-    final response = await _dio.post(Endpoints.verifyOtp, data: {
-      'phone': phone,
-      'otp': otp,
-      'first_name': firstName,
-      'last_name': lastName,
-    });
+    final response = await _dio.post(
+      Endpoints.verifyOtp,
+      data: {
+        'phone': _normalizePhone(phone),
+        'otp': otp,
+        'first_name': firstName,
+        'last_name': lastName,
+      },
+    );
     final data = response.data as Map<String, dynamic>;
 
     final prefs = await SharedPreferences.getInstance();
@@ -49,5 +59,15 @@ class AuthRepository {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
+  }
+
+  Future<void> registerDeviceToken(String token, {String platform = 'android'}) async {
+    await _dio.post(
+      Endpoints.deviceToken,
+      data: {
+        'token': token,
+        'platform': platform,
+      },
+    );
   }
 }

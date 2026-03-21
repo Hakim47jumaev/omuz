@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
+import '../../auth/providers/auth_provider.dart';
 import '../providers/lesson_provider.dart';
 
 class LessonScreen extends StatefulWidget {
@@ -78,6 +79,7 @@ class _LessonScreenState extends State<LessonScreen> {
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<LessonProvider>();
+    final isStaff = context.watch<AuthProvider>().isStaff;
     final lesson = prov.lesson;
 
     if (lesson != null && _ytController == null) {
@@ -112,7 +114,18 @@ class _LessonScreenState extends State<LessonScreen> {
                       const SizedBox(height: 16),
                       _buildStatusCard(prov),
                       const SizedBox(height: 16),
-                      if (lesson['has_quiz'] == true)
+                      FilledButton.tonalIcon(
+                        onPressed: () => context.push(
+                          '/ai/mentor',
+                          extra: {
+                            'lesson_title': lesson['title'],
+                          },
+                        ),
+                        icon: const Icon(Icons.smart_toy_outlined),
+                        label: const Text('AI Помощник'),
+                      ),
+                      const SizedBox(height: 12),
+                      if (lesson['has_quiz'] == true && !isStaff)
                         FilledButton.icon(
                           onPressed: () async {
                             final lessonProv = context.read<LessonProvider>();
