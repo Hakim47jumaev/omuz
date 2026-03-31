@@ -27,13 +27,14 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      _isNewUser = await _repo.sendOtp(phone);
+      final data = await _repo.sendOtp(phone);
+      _isNewUser = data['is_new'] == true;
       _loading = false;
       notifyListeners();
       return true;
     } catch (e) {
       _loading = false;
-      _error = 'Failed to send OTP: $e';
+      _error = 'OTP: ${AuthRepository.messageFromError(e)}';
       debugPrint('SEND OTP ERROR: $e');
       notifyListeners();
       return false;
@@ -68,7 +69,7 @@ class AuthProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       _loading = false;
-      _error = 'Verify failed: $e';
+      _error = AuthRepository.messageFromError(e);
       debugPrint('VERIFY OTP ERROR: $e');
       notifyListeners();
       return false;

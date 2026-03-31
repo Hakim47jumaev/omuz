@@ -8,6 +8,10 @@ class Lesson(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     video_url = models.URLField(help_text="YouTube or external video link")
+    duration_minutes = models.PositiveSmallIntegerField(
+        default=15,
+        help_text="Approximate lesson length shown in the app",
+    )
     order = models.PositiveIntegerField(default=0)
 
     class Meta:

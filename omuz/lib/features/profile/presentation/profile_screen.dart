@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
 
@@ -42,12 +43,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: prov.profileLoading || profile == null
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () => prov.loadProfile(),
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
+          : OmuzPage.background(
+              context: context,
+              child: RefreshIndicator(
+                onRefresh: () => prov.loadProfile(),
+                child: ListView(
+                  padding: OmuzPage.padding,
+                  children: [
                   _buildUserCard(profile),
                   const SizedBox(height: 12),
                   if (!_isStaff(profile) && prov.wallet != null) ...[
@@ -58,7 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     FilledButton.tonalIcon(
                       onPressed: () => context.push('/resume'),
                       icon: const Icon(Icons.description, size: 18),
-                      label: const Text('Резюме'),
+                      label: const Text('Resume'),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(double.infinity, 48),
                         shape: RoundedRectangleBorder(
@@ -69,10 +75,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Row(
                       children: [
                         Expanded(
+                          flex: 3,
                           child: FilledButton.tonalIcon(
                             onPressed: () => context.push('/resume'),
                             icon: const Icon(Icons.description, size: 18),
-                            label: const Text('Резюме'),
+                            label: const Text('Resume'),
                             style: FilledButton.styleFrom(
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
@@ -81,10 +88,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
+                          flex: 4,
                           child: FilledButton.tonalIcon(
                             onPressed: () => context.push('/wallet/transactions'),
                             icon: const Icon(Icons.receipt_long, size: 18),
-                            label: const Text('Операции'),
+                            label: const Text('Transactions'),
                             style: FilledButton.styleFrom(
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
@@ -104,6 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildHistory(profile['xp_history'] as List<dynamic>),
                   ],
                 ],
+                ),
               ),
             ),
     );
@@ -126,7 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     setState(() => _uploadingAvatar = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Аватар обновлен' : 'Не удалось обновить аватар')),
+      SnackBar(content: Text(ok ? 'Profile photo updated' : 'Could not update profile photo')),
     );
   }
 
@@ -169,17 +178,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white, width: 1.5),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.surface,
+                          width: 1.5,
+                        ),
                       ),
                       child: _uploadingAvatar
-                          ? const Padding(
-                              padding: EdgeInsets.all(5),
+                          ? Padding(
+                              padding: const EdgeInsets.all(5),
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             )
-                          : const Icon(Icons.edit, color: Colors.white, size: 14),
+                          : Icon(
+                              Icons.edit,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              size: 14,
+                            ),
                     ),
                   ),
                 ),
@@ -190,7 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  fullName.isEmpty ? 'Пользователь' : fullName,
+                  fullName.isEmpty ? 'User' : fullName,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 Text(
@@ -272,6 +288,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildXPCard(Map<String, dynamic> xp) {
     final totalXp = xp['total_xp'] as int;
     final level = xp['level'] as int;
+    final currentStreak = (xp['current_streak'] as int?) ?? 0;
+    final bestStreak = (xp['best_streak'] as int?) ?? 0;
     final progressInLevel = (totalXp % 100) / 100;
 
     return Card(
@@ -284,12 +302,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _xpStat('Level', '$level', Icons.star, Colors.amber),
                 _xpStat('Total XP', '$totalXp', Icons.bolt, Colors.orange),
-                _xpStat(
-                  'Next Level',
-                  '${100 - (totalXp % 100)} XP',
-                  Icons.arrow_upward,
-                  Colors.blue,
-                ),
+                _xpStat('Streak', '$currentStreak d', Icons.local_fire_department, Colors.deepOrange),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Best streak: $bestStreak days'),
+                Text('Next level: ${100 - (totalXp % 100)} XP'),
               ],
             ),
             const SizedBox(height: 12),

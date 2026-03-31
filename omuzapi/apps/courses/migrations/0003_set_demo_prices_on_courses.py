@@ -5,7 +5,7 @@ from django.db import migrations
 
 def set_prices(apps, schema_editor):
     Course = apps.get_model("courses", "Course")
-    # Демо-цена для всех курсов с нулевой ценой (бесплатные → платные для теста)
+    # Placeholder monthly price for courses still at 0 (for staging / testing).
     Course.objects.filter(price=0).update(price=Decimal("49.99"))
 
 

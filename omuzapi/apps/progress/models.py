@@ -52,3 +52,22 @@ class QuizResult(models.Model):
 
     def __str__(self):
         return f"{self.user} — {self.quiz} ({self.score}%)"
+
+
+class QuizAttempt(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="quiz_attempts"
+    )
+    quiz = models.ForeignKey("quizzes.Quiz", on_delete=models.CASCADE, related_name="attempts")
+    attempt_no = models.PositiveIntegerField(default=1)
+    score = models.PositiveIntegerField(default=0, help_text="Percentage 0-100")
+    passed = models.BooleanField(default=False)
+    xp_awarded = models.IntegerField(default=0)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-submitted_at"]
+
+    def __str__(self):
+        status = "passed" if self.passed else "failed"
+        return f"{self.user} — quiz {self.quiz_id} attempt {self.attempt_no} ({status}, {self.score}%)"

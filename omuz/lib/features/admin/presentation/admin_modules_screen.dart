@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../providers/admin_provider.dart';
 
 class AdminModulesScreen extends StatefulWidget {
@@ -31,11 +32,26 @@ class _AdminModulesScreenState extends State<AdminModulesScreen> {
         child: const Icon(Icons.add),
       ),
       body: prov.loading && prov.modules.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
           : prov.modules.isEmpty
-              ? const Center(child: Text('No modules yet'))
-              : ReorderableListView.builder(
-                  padding: const EdgeInsets.all(16),
+              ? OmuzPage.background(
+                  context: context,
+                  child: Center(
+                    child: Text(
+                      'No modules yet',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                )
+              : OmuzPage.background(
+                  context: context,
+                  child: ReorderableListView.builder(
+                  padding: OmuzPage.padding,
                   itemCount: prov.modules.length,
                   onReorder: (oldIndex, newIndex) =>
                       prov.reorderModules(oldIndex, newIndex, widget.courseId),
@@ -59,7 +75,11 @@ class _AdminModulesScreenState extends State<AdminModulesScreen> {
                                   _showModuleDialog(context, prov, module: mod),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                              icon: Icon(
+                                Icons.delete,
+                                color: Theme.of(context).colorScheme.error,
+                                size: 20,
+                              ),
                               onPressed: () =>
                                   prov.deleteModule(mod['id'] as int, widget.courseId),
                             ),
@@ -70,6 +90,7 @@ class _AdminModulesScreenState extends State<AdminModulesScreen> {
                       ),
                     );
                   },
+                ),
                 ),
     );
   }

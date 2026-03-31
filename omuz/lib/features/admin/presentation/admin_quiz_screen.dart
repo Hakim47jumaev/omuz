@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/omuz_ui.dart';
 import '../data/admin_repository.dart';
 
 class AdminQuizScreen extends StatefulWidget {
@@ -51,22 +53,40 @@ class _AdminQuizScreenState extends State<AdminQuizScreen> {
             )
           : null,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
           : _quiz == null
-              ? Center(
-                  child: FilledButton.icon(
-                    onPressed: _createQuiz,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Create Quiz for this lesson'),
+              ? OmuzPage.background(
+                  context: context,
+                  child: Center(
+                    child: FilledButton.icon(
+                      onPressed: _createQuiz,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Quiz for this lesson'),
+                    ),
                   ),
                 )
               : _questions.isEmpty
-                  ? const Center(
-                      child: Text('No questions yet. Tap + to add.'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _questions.length,
-                      itemBuilder: (context, i) => _buildQuestion(i),
+                  ? OmuzPage.background(
+                      context: context,
+                      child: Center(
+                        child: Text(
+                          'No questions yet. Tap + to add.',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    )
+                  : OmuzPage.background(
+                      context: context,
+                      child: ListView.builder(
+                        padding: OmuzPage.padding,
+                        itemCount: _questions.length,
+                        itemBuilder: (context, i) => _buildQuestion(i),
+                      ),
                     ),
     );
   }
@@ -90,7 +110,11 @@ class _AdminQuizScreenState extends State<AdminQuizScreen> {
                       style: Theme.of(context).textTheme.titleSmall),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                  icon: Icon(
+                    Icons.delete,
+                    color: Theme.of(context).colorScheme.error,
+                    size: 20,
+                  ),
                   onPressed: () async {
                     await _repo.deleteQuestion(qId);
                     _load();
@@ -105,7 +129,9 @@ class _AdminQuizScreenState extends State<AdminQuizScreen> {
                 dense: true,
                 leading: Icon(
                   isCorrect ? Icons.check_circle : Icons.circle_outlined,
-                  color: isCorrect ? Colors.green : Colors.grey,
+                  color: isCorrect
+                      ? AppTheme.success
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                   size: 20,
                 ),
                 title: Text(a['text'] as String),

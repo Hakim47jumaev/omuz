@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../providers/resume_provider.dart';
 
 class ResumeViewScreen extends StatefulWidget {
@@ -29,10 +30,15 @@ class _ResumeViewScreenState extends State<ResumeViewScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Resume')),
       body: prov.loading || data == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
+          : OmuzPage.background(
+              context: context,
+              child: ListView(
+                padding: OmuzPage.padding,
+                children: [
                 _header(data, cs),
                 const SizedBox(height: 16),
                 if ((data['education_level'] as String?)?.isNotEmpty == true)
@@ -79,7 +85,7 @@ class _ResumeViewScreenState extends State<ResumeViewScreen> {
                       (a) => ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        leading: Icon(Icons.military_tech, color: Colors.amber, size: 20),
+                        leading: Icon(Icons.military_tech, color: cs.secondary, size: 20),
                         title: Text(a as String),
                       ),
                     ),
@@ -88,6 +94,7 @@ class _ResumeViewScreenState extends State<ResumeViewScreen> {
                 _downloadBtn(prov, cs),
                 const SizedBox(height: 32),
               ],
+            ),
             ),
     );
   }
@@ -267,8 +274,14 @@ class _ResumeViewScreenState extends State<ResumeViewScreen> {
               }
             },
       icon: prov.downloading
-          ? const SizedBox(width: 18, height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          ? SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: cs.onPrimary,
+              ),
+            )
           : const Icon(Icons.download),
       label: Text(prov.downloading ? 'Generating...' : 'Download PDF'),
       style: FilledButton.styleFrom(

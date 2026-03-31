@@ -37,6 +37,29 @@ class Course(models.Model):
         return self.title
 
 
+class CourseReview(models.Model):
+    """Course rating 1–5 stars; one review per user (updated on resubmit)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="course_reviews",
+    )
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews")
+    stars = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "course")
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.user_id} → {self.course_id}: {self.stars}★"
+
+
 class Module(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules")
     title = models.CharField(max_length=200)
@@ -71,6 +94,11 @@ class Subscription(models.Model):
 
 
 class GlobalDiscount(models.Model):
+    class Scope(models.TextChoices):
+        ALL = "all", "All courses"
+        CATEGORY = "category", "One category"
+        COURSES = "courses", "Selected courses"
+
     name = models.CharField(max_length=120)
     percent = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(90)]
@@ -78,6 +106,23 @@ class GlobalDiscount(models.Model):
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
     is_active = models.BooleanField(default=True)
+    scope = models.CharField(
+        max_length=20,
+        choices=Scope.choices,
+        default=Scope.ALL,
+    )
+    category = models.ForeignKey(
+        Category,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="global_discounts",
+    )
+    target_courses = models.ManyToManyField(
+        Course,
+        blank=True,
+        related_name="discount_targets",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -87,6 +132,15 @@ class GlobalDiscount(models.Model):
     def is_running(self):
         now = timezone.now()
         return self.is_active and self.starts_at <= now <= self.ends_at
+
+    def applies_to_course(self, course: Course) -> bool:
+        if self.scope == self.Scope.ALL:
+            return True
+        if self.scope == self.Scope.CATEGORY:
+            return self.category_id is not None and course.category_id == self.category_id
+        if self.scope == self.Scope.COURSES:
+            return self.target_courses.filter(pk=course.pk).exists()
+        return False
 
     def __str__(self):
         return f"{self.name} ({self.percent}%)"

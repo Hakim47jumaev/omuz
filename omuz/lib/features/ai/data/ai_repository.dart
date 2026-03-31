@@ -8,8 +8,7 @@ class AiRepository {
   Future<Map<String, dynamic>> askMentor({
     required String message,
     required List<Map<String, String>> history,
-    String? courseTitle,
-    String? lessonTitle,
+    int? lessonId,
   }) async {
     try {
       final res = await _dio.post(
@@ -17,10 +16,7 @@ class AiRepository {
         data: {
           'message': message,
           'history': history,
-          if (courseTitle != null && courseTitle.trim().isNotEmpty)
-            'course_title': courseTitle,
-          if (lessonTitle != null && lessonTitle.trim().isNotEmpty)
-            'lesson_title': lessonTitle,
+          if (lessonId != null) 'lesson_id': lessonId,
         },
       );
       return res.data as Map<String, dynamic>;

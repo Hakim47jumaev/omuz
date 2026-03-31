@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/resume_provider.dart';
 
@@ -95,27 +96,30 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
     final isStaff = context.read<AuthProvider>().isStaff;
     if (isStaff && _selectedUserId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Выберите пользователя для резюме')),
+        const SnackBar(content: Text('Select a user for this resume')),
       );
       return;
     }
 
     setState(() => _saving = true);
     final prov = context.read<ResumeProvider>();
-    final data = {
+    final emailTrim = _emailCtrl.text.trim();
+    final data = <String, dynamic>{
       'current_job': _jobCtrl.text.trim(),
       'first_name': _firstNameCtrl.text.trim(),
       'last_name': _lastNameCtrl.text.trim(),
       'patronymic': _patronymicCtrl.text.trim(),
-      'email': _emailCtrl.text.trim(),
       'gender': _gender,
-      'birthday': _birthday?.toIso8601String().substring(0, 10),
       'education_level': _educationLevel,
       'skills': _selectedSkills.toList(),
-      'education': _educationList,
-      'work_experience': _workList,
-      if (isStaff) 'user_id': _selectedUserId,
+      'education': List<Map<String, String>>.from(_educationList),
+      'work_experience': List<Map<String, String>>.from(_workList),
     };
+    if (emailTrim.isNotEmpty) data['email'] = emailTrim;
+    if (_birthday != null) {
+      data['birthday'] = _birthday!.toIso8601String().substring(0, 10);
+    }
+    if (isStaff) data['user_id'] = _selectedUserId;
     final id = await prov.createResume(data);
     if (!mounted) return;
     setState(() => _saving = false);
@@ -144,25 +148,28 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
             ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _back)
             : IconButton(icon: const Icon(Icons.close), onPressed: () => context.pop()),
       ),
-      body: Column(
-        children: [
-          _buildStepIndicator(cs),
-          Expanded(
-            child: PageView(
-              controller: _pageCtrl,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _stepJob(isStaff, prov),
-                _stepPersonalInfo(cs),
-                _stepEducationLevel(prov, cs),
-                _stepEducationPlaces(cs),
-                _stepSkills(prov, cs),
-                _stepWorkExperience(cs),
-              ],
+      body: OmuzPage.background(
+        context: context,
+        child: Column(
+          children: [
+            _buildStepIndicator(cs),
+            Expanded(
+              child: PageView(
+                controller: _pageCtrl,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _stepJob(isStaff, prov),
+                  _stepPersonalInfo(cs),
+                  _stepEducationLevel(prov, cs),
+                  _stepEducationPlaces(cs),
+                  _stepSkills(prov, cs),
+                  _stepWorkExperience(cs),
+                ],
+              ),
             ),
-          ),
-          _buildBottomBar(cs),
-        ],
+            _buildBottomBar(cs),
+          ],
+        ),
       ),
     );
   }
@@ -200,9 +207,14 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: _saving
-              ? const SizedBox(
-                  width: 20, height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: cs.onPrimary,
+                  ),
+                )
               : Text(isLast ? 'Save' : 'Continue'),
         ),
       ),
@@ -230,19 +242,19 @@ class _ResumeBuilderScreenState extends State<ResumeBuilderScreen> {
           ),
           if (isStaff) ...[
             const SizedBox(height: 16),
-            Text('Для какого пользователя?',
+            Text('Which user?',
                 style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             DropdownButtonFormField<int>(
               initialValue: _selectedUserId,
               decoration: InputDecoration(
-                hintText: 'Выберите пользователя',
+                hintText: 'Select a user',
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12)),
                 filled: true,
               ),
               items: prov.adminUsers.map((u) {
-                final id = u['id'] as int;
+                final id = (u['id'] as num).toInt();
                 final name =
                     '${u['first_name'] ?? ''} ${u['last_name'] ?? ''}'.trim();
                 final phone = u['phone']?.toString() ?? '';

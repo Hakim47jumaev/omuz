@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../providers/profile_provider.dart';
 
 class NotificationDetailScreen extends StatefulWidget {
@@ -28,15 +29,20 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
     final prov = context.watch<ProfileProvider>();
     final item = prov.currentNotification;
     if (item == null || item['id'] != widget.id) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: OmuzPage.background(
+          context: context,
+          child: const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('Уведомление')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      appBar: AppBar(title: const Text('Notification')),
+      body: OmuzPage.background(
+        context: context,
+        child: Padding(
+          padding: OmuzPage.padding,
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -64,11 +70,13 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                   }
                 },
                 icon: const Icon(Icons.open_in_new),
-                label: const Text('Перейти'),
+                label: const Text('Open'),
               ),
           ],
+        ),
         ),
       ),
     );
   }
 }
+

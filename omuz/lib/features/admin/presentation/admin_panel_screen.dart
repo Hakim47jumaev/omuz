@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class AdminPanelScreen extends StatelessWidget {
@@ -22,9 +23,11 @@ class AdminPanelScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: OmuzPage.background(
+        context: context,
+        child: ListView(
+          padding: OmuzPage.padding,
+          children: [
           _tile(context, 'Resume', Icons.description, '/resume'),
           _tile(context, 'Analytics', Icons.analytics, '/admin/analytics'),
           _tile(context, 'Discounts', Icons.local_offer, '/admin/discounts'),
@@ -33,6 +36,7 @@ class AdminPanelScreen extends StatelessWidget {
           _tile(context, 'Categories', Icons.category, '/admin/categories'),
           _tile(context, 'Courses', Icons.school, '/admin/courses'),
         ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../providers/admin_provider.dart';
 
 class AdminCategoriesScreen extends StatefulWidget {
@@ -29,9 +30,14 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
         child: const Icon(Icons.add),
       ),
       body: prov.loading && prov.categories.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
+          : OmuzPage.background(
+              context: context,
+              child: ListView.builder(
+              padding: OmuzPage.padding,
               itemCount: prov.categories.length,
               itemBuilder: (context, index) {
                 final cat = prov.categories[index] as Map<String, dynamic>;
@@ -40,12 +46,14 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                     title: Text(cat['name'] as String),
                     subtitle: Text(cat['icon'] as String? ?? ''),
                     trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: Icon(Icons.delete,
+                          color: Theme.of(context).colorScheme.error),
                       onPressed: () => prov.deleteCategory(cat['id'] as int),
                     ),
                   ),
                 );
               },
+            ),
             ),
     );
   }

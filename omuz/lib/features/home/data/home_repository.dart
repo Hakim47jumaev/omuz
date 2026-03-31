@@ -24,4 +24,24 @@ class HomeRepository {
       return [];
     }
   }
+
+  Future<Map<String, dynamic>> getHomeFeed() async {
+    final res = await _dio.get(Endpoints.homeFeed);
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getPromotions() async {
+    try {
+      final res = await _dio.get(Endpoints.promotions);
+      return res.data as Map<String, dynamic>;
+    } catch (_) {
+      return {
+        'is_active': false,
+        'name': null,
+        'percent': 0,
+        'ends_at': null,
+        'courses': <dynamic>[],
+      };
+    }
+  }
 }

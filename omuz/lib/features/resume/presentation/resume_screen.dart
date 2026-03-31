@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../providers/resume_provider.dart';
 
 class ResumeScreen extends StatefulWidget {
@@ -33,15 +34,22 @@ class _ResumeScreenState extends State<ResumeScreen> {
         label: const Text('Create Resume'),
       ),
       body: prov.loading
-          ? const Center(child: CircularProgressIndicator())
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
           : prov.resumes.isEmpty
-              ? _buildEmpty(cs)
-              : RefreshIndicator(
-                  onRefresh: () => prov.loadResumes(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: prov.resumes.length,
-                    itemBuilder: (_, i) => _buildResumeCard(prov.resumes[i], prov, cs),
+              ? OmuzPage.background(context: context, child: _buildEmpty(cs))
+              : OmuzPage.background(
+                  context: context,
+                  child: RefreshIndicator(
+                    onRefresh: () => prov.loadResumes(),
+                    child: ListView.builder(
+                      padding: OmuzPage.padding,
+                      itemCount: prov.resumes.length,
+                      itemBuilder: (_, i) =>
+                          _buildResumeCard(prov.resumes[i], prov, cs),
+                    ),
                   ),
                 ),
     );

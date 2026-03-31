@@ -1,8 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/api/endpoints.dart';
+import 'resume_pdf_save.dart';
 
 class ResumeRepository {
   final _dio = ApiClient().dio;
@@ -37,14 +39,15 @@ class ResumeRepository {
   }
 
   Future<String> downloadPdf(int id) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final path = '${dir.path}/resume_$id.pdf';
-    await _dio.download(
+    final res = await _dio.get(
       Endpoints.resumeDownload(id),
-      path,
       options: Options(responseType: ResponseType.bytes),
     );
-    return path;
+    final raw = res.data;
+    final bytes = raw is Uint8List
+        ? raw
+        : Uint8List.fromList(List<int>.from(raw as List));
+    return saveResumePdf(bytes, id);
   }
 
   Future<List<dynamic>> getUsersForAdminResume() async {

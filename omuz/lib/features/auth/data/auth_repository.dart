@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/api/api_error_message.dart';
 import '../../../core/api/endpoints.dart';
 
 class AuthRepository {
@@ -12,11 +13,10 @@ class AuthRepository {
     return '+$digits';
   }
 
-  Future<bool> sendOtp(String phone) async {
+  Future<Map<String, dynamic>> sendOtp(String phone) async {
     final response =
         await _dio.post(Endpoints.sendOtp, data: {'phone': _normalizePhone(phone)});
-    final data = response.data as Map<String, dynamic>;
-    return data['is_new'] as bool;
+    return (response.data as Map<String, dynamic>);
   }
 
   Future<Map<String, dynamic>> verifyOtp({
@@ -29,7 +29,7 @@ class AuthRepository {
       Endpoints.verifyOtp,
       data: {
         'phone': _normalizePhone(phone),
-        'otp': otp,
+        'otp': otp.trim(),
         'first_name': firstName,
         'last_name': lastName,
       },
@@ -44,6 +44,8 @@ class AuthRepository {
     await prefs.setBool('is_staff', user['is_staff'] == true);
     return user;
   }
+
+  static String messageFromError(Object e) => apiErrorMessage(e);
 
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();

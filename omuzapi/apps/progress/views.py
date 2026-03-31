@@ -3,6 +3,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.courses.access import user_can_access_lesson
+from apps.lessons.models import Lesson
+
 from .models import LessonProgress, QuizResult
 from .serializers import LessonProgressSerializer, QuizResultSerializer
 
@@ -17,12 +20,26 @@ class MarkVideoWatchedView(APIView):
                 "video_watched": False,
                 "quiz_passed": False,
                 "is_completed": False,
-                "detail": "Для администратора прогресс уроков отключен.",
+                "detail": "Lesson progress is disabled for staff accounts.",
             })
 
         lesson_id = request.data.get("lesson_id")
         if not lesson_id:
             return Response({"detail": "lesson_id required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            lesson = Lesson.objects.select_related("module__course").get(pk=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"detail": "Lesson not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not user_can_access_lesson(request.user, lesson):
+            return Response(
+                {
+                    "detail": "Subscribe to this course to save video progress and complete lessons.",
+                    "code": "subscription_required",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         progress, _ = LessonProgress.objects.select_related("lesson").get_or_create(
             user=request.user, lesson_id=lesson_id,
@@ -30,8 +47,9 @@ class MarkVideoWatchedView(APIView):
         if not progress.video_watched:
             progress.video_watched = True
             progress.save(update_fields=["video_watched"])
-            progress.refresh_from_db()
+            progress = LessonProgress.objects.select_related("lesson").get(pk=progress.pk)
             progress.check_completion()
+            progress.refresh_from_db()
 
         return Response({
             "video_watched": progress.video_watched,
@@ -44,7 +62,6 @@ class LessonStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, lesson_id):
-        from apps.lessons.models import Lesson
         try:
             lesson = Lesson.objects.get(pk=lesson_id)
         except Lesson.DoesNotExist:

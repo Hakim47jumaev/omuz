@@ -9,7 +9,9 @@ class Endpoints {
 
   static const String categories = '/courses/categories/';
   static const String courses = '/courses/';
+  static const String promotions = '/courses/promotions/';
   static String courseDetail(int id) => '/courses/$id/';
+  static String courseReview(int id) => '/courses/$id/review/';
 
   static String lessonDetail(int id) => '/lessons/$id/';
 
@@ -17,9 +19,11 @@ class Endpoints {
   static String quizSubmit(int quizId) => '/quizzes/$quizId/submit/';
 
   static const String continueLearning = '/courses/continue/';
+  static const String homeFeed = '/courses/home-feed/';
 
   static const String profile = '/gamification/profile/';
   static const String leaderboard = '/gamification/leaderboard/';
+  static String leaderboardUser(int userId) => '/gamification/leaderboard/$userId/';
   static const String analytics = '/gamification/analytics/';
   static const String paymentAnalytics = '/gamification/payments/';
 
@@ -53,6 +57,7 @@ class Endpoints {
   static const String wallet = '/users/wallet/';
   static const String walletTransactions = '/users/wallet/transactions/';
   static const String adminTopup = '/users/admin/topup/';
+  static String adminTransactionCheck(int id) => '/users/admin/transactions/$id/check/';
   static const String notifications = '/users/notifications/';
   static String notificationDetail(int id) => '/users/notifications/$id/';
   static const String notificationsReadAll = '/users/notifications/read-all/';

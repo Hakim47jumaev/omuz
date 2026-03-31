@@ -17,6 +17,9 @@ class CourseProvider extends ChangeNotifier {
     return subscription!['is_active'] == true;
   }
 
+  bool reviewSubmitting = false;
+  String? reviewError;
+
   Future<void> load(int id) async {
     loading = true;
     notifyListeners();
@@ -29,6 +32,30 @@ class CourseProvider extends ChangeNotifier {
     }
     loading = false;
     notifyListeners();
+  }
+
+  /// Submit 1–5 star rating; updates [course] rating_avg, rating_count, my_rating.
+  Future<bool> submitReview(int stars) async {
+    if (course == null) return false;
+    final id = course!['id'] as int;
+    reviewSubmitting = true;
+    reviewError = null;
+    notifyListeners();
+    try {
+      final res = await _repo.submitCourseReview(id, stars);
+      course = Map<String, dynamic>.from(course!)
+        ..['my_rating'] = res['stars']
+        ..['rating_avg'] = res['rating_avg']
+        ..['rating_count'] = res['rating_count'];
+      reviewSubmitting = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      reviewError = _extractError(e);
+      reviewSubmitting = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> purchase(int courseId) async {
@@ -76,10 +103,10 @@ class CourseProvider extends ChangeNotifier {
       }
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
-        return 'Превышено время ожидания. Проверьте интернет и сервер.';
+        return 'Request timed out. Check your network and that the API is running.';
       }
       if (e.type == DioExceptionType.connectionError) {
-        return 'Нет соединения с сервером. Проверьте, что бэкенд запущен и adb reverse / Wi‑Fi настроены.';
+        return 'Cannot reach the server. Ensure the API is running and USB adb reverse / Wi‑Fi is configured.';
       }
     }
     final str = e.toString();
@@ -88,7 +115,13 @@ class CourseProvider extends ChangeNotifier {
     return str;
   }
 
-  bool isLessonUnlocked(List<dynamic> allLessons, int lessonId) {
+  /// When [staffBypass] is true (admin), all lessons are unlocked without completion chain.
+  bool isLessonUnlocked(
+    List<dynamic> allLessons,
+    int lessonId, {
+    bool staffBypass = false,
+  }) {
+    if (staffBypass) return true;
     final index = allLessons.indexWhere((l) => l['id'] == lessonId);
     if (index <= 0) return true;
     final prevId = allLessons[index - 1]['id'] as int;

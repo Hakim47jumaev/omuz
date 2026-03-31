@@ -12,6 +12,11 @@ urlpatterns = [
     path("wallet/", views.WalletView.as_view(), name="wallet"),
     path("wallet/transactions/", views.WalletTransactionsView.as_view(), name="wallet-transactions"),
     path("admin/topup/", views.AdminTopUpView.as_view(), name="admin-topup"),
+    path(
+        "admin/transactions/<int:pk>/check/",
+        views.AdminTransactionCheckView.as_view(),
+        name="admin-transaction-check",
+    ),
     path("resume/choices/", views.ResumeChoicesView.as_view(), name="resume-choices"),
     path("resume/", views.ResumeListCreateView.as_view(), name="resume-list"),
     path("resume/<int:pk>/", views.ResumeDetailView.as_view(), name="resume-detail"),

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/youtube_id.dart';
+import '../../../core/widgets/omuz_ui.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/lesson_provider.dart';
 
@@ -18,6 +22,7 @@ class _LessonScreenState extends State<LessonScreen> {
   YoutubePlayerController? _ytController;
   double _watchPercent = 0;
   bool _videoMarked = false;
+  bool _wasYtFullScreen = false;
 
   @override
   void initState() {
@@ -27,18 +32,31 @@ class _LessonScreenState extends State<LessonScreen> {
   }
 
   void _initYoutube(String url) {
-    final videoId = YoutubePlayer.convertUrlToId(url);
+    final videoId = resolveYoutubeVideoId(url);
     if (videoId != null && _ytController == null) {
       _ytController = YoutubePlayerController(
         initialVideoId: videoId,
         flags: const YoutubePlayerFlags(autoPlay: false),
       );
-      _ytController!.addListener(_onVideoProgress);
+      _ytController!.addListener(_onYoutubeControllerUpdate);
       if (mounted) setState(() {});
     }
   }
 
-  void _onVideoProgress() async {
+  void _onYoutubeControllerUpdate() {
+    final ctrl = _ytController;
+    if (ctrl == null) return;
+
+    final fs = ctrl.value.isFullScreen;
+    if (fs != _wasYtFullScreen) {
+      _wasYtFullScreen = fs;
+      if (mounted) setState(() {});
+    }
+
+    _updateWatchProgress();
+  }
+
+  Future<void> _updateWatchProgress() async {
     final ctrl = _ytController;
     if (ctrl == null || _videoMarked) return;
 
@@ -60,7 +78,9 @@ class _LessonScreenState extends State<LessonScreen> {
         if (mounted) {
           final msg = prov.completed
               ? 'Lesson completed!'
-              : 'Video watched! Now pass the quiz to complete the lesson.';
+              : prov.hasQuiz
+                  ? 'Video watched! Pass the quiz to complete the lesson.'
+                  : 'Video watched! This lesson is complete.';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
           );
@@ -71,7 +91,10 @@ class _LessonScreenState extends State<LessonScreen> {
 
   @override
   void dispose() {
-    _ytController?.removeListener(_onVideoProgress);
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.restoreSystemUIOverlays();
+    _ytController?.removeListener(_onYoutubeControllerUpdate);
     _ytController?.dispose();
     super.dispose();
   }
@@ -86,85 +109,187 @@ class _LessonScreenState extends State<LessonScreen> {
       _initYoutube(lesson['video_url'] as String);
     }
 
+    final cs = Theme.of(context).colorScheme;
+
+    final ytFullScreen = _ytController?.value.isFullScreen ?? false;
+
     return Scaffold(
-      appBar: AppBar(title: Text(lesson?['title'] ?? 'Lesson')),
+      backgroundColor: AppTheme.background,
+      appBar: ytFullScreen
+          ? null
+          : AppBar(title: Text(lesson?['title'] ?? 'Lesson')),
       body: prov.loading || lesson == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                if (_ytController != null)
-                  YoutubePlayer(controller: _ytController!)
-                else
-                  const SizedBox(
-                    height: 200,
-                    child: Center(child: Text('Video unavailable')),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        lesson['title'] as String,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      if ((lesson['description'] as String).isNotEmpty)
-                        Text(lesson['description'] as String),
-                      const SizedBox(height: 16),
-                      _buildStatusCard(prov),
-                      const SizedBox(height: 16),
-                      FilledButton.tonalIcon(
-                        onPressed: () => context.push(
-                          '/ai/mentor',
-                          extra: {
-                            'lesson_title': lesson['title'],
-                          },
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
+          : OmuzPage.background(
+              context: context,
+              child: _ytController != null
+                  ? YoutubePlayerBuilder(
+                      onEnterFullScreen: () {
+                        SystemChrome.setPreferredOrientations(const [
+                          DeviceOrientation.landscapeLeft,
+                          DeviceOrientation.landscapeRight,
+                        ]);
+                      },
+                      onExitFullScreen: () {
+                        SystemChrome.setPreferredOrientations(
+                          DeviceOrientation.values,
+                        );
+                        SystemChrome.setEnabledSystemUIMode(
+                          SystemUiMode.edgeToEdge,
+                        );
+                        SystemChrome.restoreSystemUIOverlays();
+                      },
+                      player: YoutubePlayer(
+                        controller: _ytController!,
+                        showVideoProgressIndicator: true,
+                        progressIndicatorColor: cs.primary,
+                        progressColors: ProgressBarColors(
+                          playedColor: cs.primary,
+                          handleColor: cs.primary,
+                          bufferedColor: cs.primary.withValues(alpha: 0.35),
+                          backgroundColor: cs.surfaceContainerHighest,
                         ),
-                        icon: const Icon(Icons.smart_toy_outlined),
-                        label: const Text('AI Помощник'),
                       ),
-                      const SizedBox(height: 12),
-                      if (lesson['has_quiz'] == true && !isStaff)
-                        FilledButton.icon(
-                          onPressed: () async {
-                            final lessonProv = context.read<LessonProvider>();
-                            await context.push('/quiz/${widget.lessonId}');
-                            if (mounted) {
-                              lessonProv.load(widget.lessonId);
-                            }
-                          },
-                          icon: const Icon(Icons.quiz),
-                          label: Text(prov.quizPassed ? 'Quiz Passed (${prov.quizScore}%)' : 'Take Quiz'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(48),
-                            backgroundColor: prov.quizPassed ? Colors.green : null,
+                      builder: (context, player) {
+                        // Do not nest WebView inside ListView — on Android it does not
+                        // scroll with the list and causes duplicate scroll areas.
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ClipRect(
+                              clipBehavior: Clip.hardEdge,
+                              child: AspectRatio(
+                                aspectRatio: 16 / 9,
+                                child: player,
+                              ),
+                            ),
+                            Expanded(
+                              child: ListView(
+                                padding: OmuzPage.padding,
+                                children: [
+                                  Text(
+                                    lesson['title'] as String,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if ((lesson['description'] as String)
+                                      .isNotEmpty)
+                                    Text(lesson['description'] as String),
+                                  const SizedBox(height: 16),
+                                  _buildStatusCard(prov),
+                                  const SizedBox(height: 12),
+                                  if (prov.hasQuiz && !isStaff)
+                                    FilledButton.icon(
+                                      onPressed: () async {
+                                        final lessonProv =
+                                            context.read<LessonProvider>();
+                                        await context
+                                            .push('/quiz/${widget.lessonId}');
+                                        if (mounted) {
+                                          lessonProv.load(widget.lessonId);
+                                        }
+                                      },
+                                      icon: const Icon(Icons.quiz),
+                                      label: Text(
+                                        prov.quizPassed
+                                            ? 'Quiz Passed (${prov.quizScore}%)'
+                                            : 'Take Quiz',
+                                      ),
+                                      style: FilledButton.styleFrom(
+                                        minimumSize:
+                                            const Size.fromHeight(48),
+                                        backgroundColor: prov.quizPassed
+                                            ? AppTheme.success
+                                            : null,
+                                        foregroundColor: prov.quizPassed
+                                            ? Colors.white
+                                            : null,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      context.push(
+                                        '/ai-mentor',
+                                        extra: widget.lessonId,
+                                      );
+                                    },
+                                    icon: const Icon(Icons.smart_toy_outlined),
+                                    label: const Text('AI for this lesson'),
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize:
+                                          const Size.fromHeight(48),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    )
+                  : ListView(
+                      children: [
+                        SizedBox(
+                          height: 200,
+                          child: Center(
+                            child: Text(
+                              'Video unavailable',
+                              style: TextStyle(color: cs.onSurfaceVariant),
+                            ),
                           ),
                         ),
-                    ],
-                  ),
-                ),
-              ],
+                        Padding(
+                          padding: OmuzPage.padding,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                lesson['title'] as String,
+                                style:
+                                    Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 8),
+                              if ((lesson['description'] as String).isNotEmpty)
+                                Text(lesson['description'] as String),
+                              const SizedBox(height: 16),
+                              _buildStatusCard(prov),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
             ),
     );
   }
 
   Widget _buildStatusCard(LessonProvider prov) {
+    final cs = Theme.of(context).colorScheme;
+
     if (prov.completed) {
       return Card(
-        color: Colors.green.shade50,
+        color: AppTheme.success.withValues(alpha: 0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppTheme.success.withValues(alpha: 0.35)),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 28),
+              Icon(Icons.check_circle, color: AppTheme.success, size: 28),
               const SizedBox(width: 12),
               Text(
                 'Lesson Completed',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: Colors.green.shade800,
+                  color: AppTheme.success,
                 ),
               ),
             ],
@@ -185,7 +310,7 @@ class _LessonScreenState extends State<LessonScreen> {
               children: [
                 Icon(
                   prov.videoWatched ? Icons.check_circle : Icons.play_circle_outline,
-                  color: prov.videoWatched ? Colors.green : Colors.grey,
+                  color: prov.videoWatched ? AppTheme.success : cs.onSurfaceVariant,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -201,6 +326,8 @@ class _LessonScreenState extends State<LessonScreen> {
               LinearProgressIndicator(
                 value: _watchPercent,
                 borderRadius: BorderRadius.circular(4),
+                color: cs.primary,
+                backgroundColor: cs.surfaceContainerHighest,
               ),
             ],
             if (prov.hasQuiz) ...[
@@ -209,7 +336,7 @@ class _LessonScreenState extends State<LessonScreen> {
                 children: [
                   Icon(
                     prov.quizPassed ? Icons.check_circle : Icons.quiz_outlined,
-                    color: prov.quizPassed ? Colors.green : Colors.grey,
+                    color: prov.quizPassed ? AppTheme.success : cs.onSurfaceVariant,
                     size: 20,
                   ),
                   const SizedBox(width: 8),

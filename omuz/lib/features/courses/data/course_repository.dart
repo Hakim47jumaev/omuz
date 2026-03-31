@@ -35,4 +35,12 @@ class CourseRepository {
     final res = await _dio.post(Endpoints.renew(courseId), data: {'days': days});
     return res.data as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> submitCourseReview(int courseId, int stars) async {
+    final res = await _dio.post(
+      Endpoints.courseReview(courseId),
+      data: {'stars': stars},
+    );
+    return res.data as Map<String, dynamic>;
+  }
 }

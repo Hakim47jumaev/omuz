@@ -1,0 +1,16 @@
+services:
+  api:
+    build:
+      context: ./omuzapi
+      dockerfile: Dockerfile
+    container_name: omuz-api
+    working_dir: /app
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "docker-dev-secret-key-change-me"
+    volumes:
+      - ./omuzapi:/app
+    restart: unless-stopped

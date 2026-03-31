@@ -24,6 +24,11 @@ class AdminRepository {
     return res.data as List<dynamic>;
   }
 
+  Future<Map<String, dynamic>> getCourse(int id) async {
+    final res = await _dio.get(Endpoints.adminCourse(id));
+    return Map<String, dynamic>.from(res.data as Map);
+  }
+
   Future<void> createCourse(Map<String, dynamic> data) async {
     await _dio.post(Endpoints.adminCourses, data: data);
   }

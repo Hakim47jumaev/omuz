@@ -17,6 +17,6 @@ def _generate_account_number():
 
 @receiver(post_save, sender=User)
 def create_wallet(sender, instance, created, **kwargs):
-    # Кошелёк только у студентов; у админов оплаты и баланса нет
+    # Wallet only for students; staff have no balance/payments in-app
     if created and not instance.is_staff:
         Wallet.objects.create(user=instance, account_number=_generate_account_number())

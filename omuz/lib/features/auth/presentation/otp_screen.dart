@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_app_mark.dart';
+import '../../../core/widgets/omuz_ui.dart';
 import '../providers/auth_provider.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -29,11 +31,22 @@ class _OtpScreenState extends State<OtpScreen> {
     final auth = context.watch<AuthProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify OTP')),
+      appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const OmuzMark(size: 28),
+            const SizedBox(width: 10),
+            const Text('Verify OTP'),
+          ],
+        ),
+      ),
       resizeToAvoidBottomInset: true,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+      body: OmuzPage.background(
+        context: context,
+        child: SingleChildScrollView(
+          padding: OmuzPage.padding,
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
@@ -69,10 +82,11 @@ class _OtpScreenState extends State<OtpScreen> {
             TextField(
               controller: _otpController,
               keyboardType: TextInputType.number,
-              maxLength: 6,
+              maxLength: 4,
               decoration: InputDecoration(
                 labelText: 'OTP code',
                 hintText: '1234',
+                counterText: '',
                 prefixIcon: const Icon(Icons.lock),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -85,7 +99,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
                   auth.error!,
-                  style: const TextStyle(color: Colors.red),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -96,6 +110,15 @@ class _OtpScreenState extends State<OtpScreen> {
                   : () async {
                       final otp = _otpController.text.trim();
                       if (otp.isEmpty) return;
+                      if (otp.length != 4) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Enter the 4-digit code.'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
                       final ok = await auth.verifyOtp(
                         otp: otp,
                         firstName: _firstNameController.text.trim(),
@@ -112,18 +135,19 @@ class _OtpScreenState extends State<OtpScreen> {
                 ),
               ),
               child: auth.loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     )
                   : const Text('Verify & Login',
                       style: TextStyle(fontSize: 16)),
             ),
           ],
+        ),
         ),
       ),
     );

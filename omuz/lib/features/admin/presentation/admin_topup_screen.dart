@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../data/admin_repository.dart';
 
 class AdminTopupScreen extends StatefulWidget {
@@ -37,18 +38,23 @@ class _AdminTopupScreenState extends State<AdminTopupScreen> {
     final filtered = _filteredUsers();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Пополнение баланса')),
+      appBar: AppBar(title: const Text('Wallet top-up')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadUsers,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
+          : OmuzPage.background(
+              context: context,
+              child: RefreshIndicator(
+                onRefresh: _loadUsers,
+                child: ListView(
+                  padding: OmuzPage.padding,
+                  children: [
                   TextField(
                     onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
                     decoration: InputDecoration(
-                      hintText: 'Поиск по телефону, имени или фамилии',
+                      hintText: 'Search by phone, first or last name',
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
@@ -58,7 +64,7 @@ class _AdminTopupScreenState extends State<AdminTopupScreen> {
                   if (filtered.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(24),
-                      child: Center(child: Text('Пользователи не найдены')),
+                      child: Center(child: Text('No users found')),
                     )
                   else
                     ...filtered.map((u) {
@@ -81,7 +87,7 @@ class _AdminTopupScreenState extends State<AdminTopupScreen> {
                             ),
                           ),
                           title: Text(name.isNotEmpty ? name : 'User #${user['id']}'),
-                          subtitle: Text('${user['phone']} | Баланс: $balance TJS'),
+                          subtitle: Text('${user['phone']} | Balance: $balance TJS'),
                           trailing: IconButton(
                             icon: Icon(Icons.add_circle, color: cs.primary),
                             onPressed: () => _showTopupDialog(user),
@@ -89,7 +95,8 @@ class _AdminTopupScreenState extends State<AdminTopupScreen> {
                         ),
                       );
                     }),
-                ],
+                  ],
+                ),
               ),
             ),
     );
@@ -114,12 +121,12 @@ class _AdminTopupScreenState extends State<AdminTopupScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Пополнение: ${name.isNotEmpty ? name : user['phone']}'),
+        title: Text('Top-up: ${name.isNotEmpty ? name : user['phone']}'),
         content: TextField(
           controller: ctrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
-            labelText: 'Сумма (TJS)',
+            labelText: 'Amount (TJS)',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             filled: true,
           ),
@@ -127,7 +134,7 @@ class _AdminTopupScreenState extends State<AdminTopupScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () async {
@@ -138,19 +145,19 @@ class _AdminTopupScreenState extends State<AdminTopupScreen> {
                 await _repo.topUpUser(user['id'] as int, amount);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${amount.toStringAsFixed(2)} TJS зачислено')),
+                    SnackBar(content: Text('${amount.toStringAsFixed(2)} TJS credited')),
                   );
                   _loadUsers();
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Ошибка: $e')),
+                    SnackBar(content: Text('Error: $e')),
                   );
                 }
               }
             },
-            child: const Text('Пополнить'),
+            child: const Text('Add funds'),
           ),
         ],
       ),

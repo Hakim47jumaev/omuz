@@ -6,6 +6,7 @@ BADGE_CHOICES = [
     ("five_lessons", "5 Lessons Completed"),
     ("first_quiz", "First Quiz Passed"),
     ("perfect_score", "Perfect Score"),
+    ("first_try_perfect", "Perfect on First Try"),
     ("streak_3", "3 Day Streak"),
 ]
 
@@ -16,6 +17,9 @@ class UserXP(models.Model):
     )
     total_xp = models.PositiveIntegerField(default=0)
     level = models.PositiveIntegerField(default=1)
+    current_streak = models.PositiveIntegerField(default=0)
+    best_streak = models.PositiveIntegerField(default=0)
+    last_activity_date = models.DateField(blank=True, null=True)
 
     class Meta:
         verbose_name = "User XP"

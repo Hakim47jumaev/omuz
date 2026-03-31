@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/admin/presentation/admin_categories_screen.dart';
-import '../../features/ai/presentation/ai_mentor_screen.dart';
+import '../../features/admin/presentation/admin_course_detail_screen.dart';
 import '../../features/admin/presentation/admin_courses_screen.dart';
 import '../../features/admin/presentation/admin_lessons_screen.dart';
 import '../../features/admin/presentation/admin_modules_screen.dart';
@@ -11,6 +11,7 @@ import '../../features/admin/presentation/admin_payments_screen.dart';
 import '../../features/admin/presentation/admin_panel_screen.dart';
 import '../../features/admin/presentation/admin_topup_screen.dart';
 import '../../features/admin/presentation/admin_quiz_screen.dart';
+import '../../features/profile/presentation/leaderboard_user_screen.dart';
 import '../../features/profile/presentation/transactions_screen.dart';
 import '../../features/profile/presentation/notifications_screen.dart';
 import '../../features/profile/presentation/notification_detail_screen.dart';
@@ -25,6 +26,7 @@ import '../../features/courses/presentation/module_detail_screen.dart';
 import '../../features/lessons/presentation/lesson_screen.dart';
 import '../../features/quizzes/presentation/quiz_screen.dart';
 import '../../features/shell/main_shell.dart';
+import '../../features/ai/presentation/ai_mentor_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -33,6 +35,20 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/login', builder: (context, state) => const PhoneScreen()),
     GoRoute(path: '/otp', builder: (context, state) => const OtpScreen()),
     GoRoute(path: '/home', builder: (context, state) => const MainShell()),
+    GoRoute(
+      path: '/ai-mentor',
+      builder: (context, state) {
+        int? lessonId;
+        final e = state.extra;
+        if (e is int) {
+          lessonId = e;
+        } else if (e is Map) {
+          final v = e['lesson_id'];
+          if (v is int) lessonId = v;
+        }
+        return AiMentorScreen(lessonId: lessonId);
+      },
+    ),
     GoRoute(
       path: '/course/:id',
       builder: (context, state) {
@@ -63,10 +79,10 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-      path: '/ai/mentor',
+      path: '/leaderboard/user/:userId',
       builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>?;
-        return AiMentorScreen(initialContext: extra);
+        final id = int.parse(state.pathParameters['userId']!);
+        return LeaderboardUserScreen(userId: id);
       },
     ),
     GoRoute(path: '/wallet/transactions', builder: (context, state) => const TransactionsScreen()),
@@ -100,6 +116,13 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final id = int.parse(state.pathParameters['id']!);
         return AdminModulesScreen(courseId: id);
+      },
+    ),
+    GoRoute(
+      path: '/admin/course/:id',
+      builder: (context, state) {
+        final id = int.parse(state.pathParameters['id']!);
+        return AdminCourseDetailScreen(courseId: id);
       },
     ),
     GoRoute(

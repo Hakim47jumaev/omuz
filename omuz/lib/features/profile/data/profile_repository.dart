@@ -15,6 +15,11 @@ class ProfileRepository {
     return res.data as List<dynamic>;
   }
 
+  Future<Map<String, dynamic>> getLeaderboardUser(int userId) async {
+    final res = await _dio.get(Endpoints.leaderboardUser(userId));
+    return res.data as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> getWallet() async {
     final res = await _dio.get(Endpoints.wallet);
     return res.data as Map<String, dynamic>;

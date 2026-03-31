@@ -28,6 +28,7 @@ class QuizSerializer(serializers.ModelSerializer):
 class QuizSubmitSerializer(serializers.Serializer):
     """Expected: {answers: {question_id: answer_id, ...}}"""
     answers = serializers.DictField(child=serializers.IntegerField())
+    confirm_reading_checkpoint = serializers.BooleanField(required=False, default=False)
 
 
 # ── Admin serializers ──

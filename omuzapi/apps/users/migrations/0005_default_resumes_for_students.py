@@ -9,7 +9,7 @@ def create_missing_resumes(apps, schema_editor):
             continue
         Resume.objects.create(
             user_id=u.pk,
-            first_name=(u.first_name or "Пользователь").strip() or "Пользователь",
+            first_name=(u.first_name or "User").strip() or "User",
             last_name=(u.last_name or "").strip(),
             current_job="",
             patronymic="",

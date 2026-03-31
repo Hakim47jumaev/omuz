@@ -1,8 +1,8 @@
-"""Set default YouTube preview for paid courses without preview (demo for all visitors)."""
+"""Set default YouTube preview for paid courses that had no preview URL."""
 
 from django.db import migrations
 
-# Короткое публичное видео — заглушка, в production админ заменит на презентацию курса
+# Short public placeholder video; replace with a real course preview in production.
 DEFAULT_PREVIEW = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 
 

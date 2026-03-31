@@ -24,7 +24,9 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    phone = models.CharField(max_length=15, unique=True)
+    phone = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True, db_index=True)
+    google_sub = models.CharField(max_length=255, unique=True, blank=True, null=True)
     first_name = models.CharField(max_length=50, blank=True)
     last_name = models.CharField(max_length=50, blank=True)
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
@@ -44,7 +46,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ["first_name", "last_name"]
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.phone})"
+        phone = self.phone or "—"
+        return f"{self.first_name} {self.last_name} ({phone})"
 
 
 GENDER_CHOICES = [("male", "Male"), ("female", "Female")]

@@ -10,9 +10,14 @@ class QuizRepository {
   }
 
   Future<Map<String, dynamic>> submitQuiz(
-      int quizId, Map<String, int> answers) async {
-    final res =
-        await _dio.post(Endpoints.quizSubmit(quizId), data: {'answers': answers});
+      int quizId, Map<String, int> answers, {required bool confirmReadingCheckpoint}) async {
+    final res = await _dio.post(
+      Endpoints.quizSubmit(quizId),
+      data: {
+        'answers': answers,
+        'confirm_reading_checkpoint': confirmReadingCheckpoint,
+      },
+    );
     return res.data as Map<String, dynamic>;
   }
 }

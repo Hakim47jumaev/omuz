@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-
+import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/youtube_id.dart';
+import '../../../core/widgets/course_rating.dart';
+import '../../../core/widgets/omuz_ui.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../providers/course_provider.dart';
+import 'course_preview_player_screen.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   final int courseId;
@@ -33,27 +37,35 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     final cs = Theme.of(context).colorScheme;
 
     final paywall = course != null && sub != null && _showPaywall(prov, sub);
+    final isActiveSub = sub != null && sub['status'] == 'active';
+    final isStaff = context.watch<AuthProvider>().isStaff;
 
     return Scaffold(
-      appBar: AppBar(title: Text(course?['title'] ?? 'Курс')),
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(title: Text(course?['title'] ?? 'Course')),
       body: prov.loading || course == null || sub == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
+          : OmuzPage.background(
+              context: context,
+              child: ListView(
+                padding: OmuzPage.padding,
+                children: [
                 if (paywall) ...[
-                  _buildPaywallDemoHeader(cs),
+                  _buildPreviewVideoBanner(cs),
                   if ((course['preview_video_url'] as String?)?.isNotEmpty ==
                       true) ...[
                     const SizedBox(height: 8),
-                    _PublicDemoVideo(
+                    _IntroVideoCard(
                       key: ValueKey(course['preview_video_url'] as String),
                       url: course['preview_video_url'] as String,
                     ),
                   ],
                   const SizedBox(height: 8),
                   Text(
-                    'Полный доступ к урокам открывается после оплаты подписки.',
+                    'Full lesson access unlocks after you subscribe.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: cs.onSurfaceVariant,
                         ),
@@ -63,11 +75,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   if ((course['preview_video_url'] as String?)?.isNotEmpty ==
                       true) ...[
                     Text(
-                      'Знакомство с курсом',
+                      'Course introduction',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 8),
-                    _PublicDemoVideo(
+                    _IntroVideoCard(
                       key: ValueKey(course['preview_video_url'] as String),
                       url: course['preview_video_url'] as String,
                     ),
@@ -81,23 +93,124 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   const SizedBox(height: 16),
                 ],
 
+                _buildCourseRatingSection(
+                  context,
+                  course,
+                  prov,
+                  isStaff,
+                  paywall: paywall,
+                ),
+                const SizedBox(height: 16),
+
                 if (paywall)
                   _buildPurchaseSection(prov, sub, cs)
                 else ...[
-                  if (sub['status'] == 'active')
+                  if (isActiveSub)
                     _buildActiveSubBanner(sub, cs),
-                  const SizedBox(height: 8),
-                  Text('Модули',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  ..._buildModules(course, prov, cs),
+                  if (isActiveSub) ...[
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () => _handleContinue(course, prov),
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Continue'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildUserCourseDataCard(course, prov, sub),
+                  ],
+                  if (!isActiveSub) ...[
+                    const SizedBox(height: 8),
+                    Text('Modules',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    ..._buildModules(course, prov, cs),
+                  ],
                 ],
               ],
+            ),
             ),
     );
   }
 
-  Widget _buildPaywallDemoHeader(ColorScheme cs) {
+  Widget _buildCourseRatingSection(
+    BuildContext context,
+    Map<String, dynamic> course,
+    CourseProvider prov,
+    bool isStaff, {
+    required bool paywall,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final isFree = course['is_free'] == true;
+    final canRate = isFree || !paywall;
+    int? myRating;
+    final mr = course['my_rating'];
+    if (mr is int) {
+      myRating = mr;
+    } else if (mr is num) {
+      myRating = mr.toInt();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Rating',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 8),
+        CourseRatingSummary(course: course),
+        if (!isStaff) ...[
+          const SizedBox(height: 14),
+          if (!canRate) ...[
+            Text(
+              'Subscribe to rate this course.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+            ),
+          ] else ...[
+            Text(
+              'Your rating (1–5)',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            CourseStarPicker(
+              value: myRating,
+              enabled: !prov.reviewSubmitting,
+              onChanged: (s) async {
+                final ok = await prov.submitReview(s);
+                if (!context.mounted) return;
+                if (ok) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Thanks! You rated this course $s out of 5'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          prov.reviewError ?? 'Could not save your rating'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPreviewVideoBanner(ColorScheme cs) {
     return Card(
       elevation: 0,
       color: cs.primaryContainer.withAlpha(200),
@@ -113,7 +226,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Демо-видео — доступно всем',
+                    'Free preview video',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: cs.onPrimaryContainer,
@@ -121,7 +234,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Посмотрите вводное видео, чтобы оценить курс перед покупкой.',
+                    'Watch the intro to decide before you subscribe.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: cs.onPrimaryContainer.withAlpha(220),
                         ),
@@ -142,27 +255,27 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
       final dt = DateTime.tryParse(expiresAt);
       if (dt != null) {
         final days = dt.difference(DateTime.now()).inDays;
-        expiresLabel = 'Осталось: $days дн.';
+        expiresLabel = '$days days left';
       }
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.green.withAlpha(30),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.withAlpha(80)),
+        color: AppTheme.success.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.success.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 20),
+          Icon(Icons.check_circle, color: AppTheme.success, size: 20),
           const SizedBox(width: 8),
-          Text('Подписка активна',
+          Text('Subscription active',
               style: TextStyle(
-                  color: Colors.green.shade700, fontWeight: FontWeight.w600)),
+                  color: AppTheme.success, fontWeight: FontWeight.w600)),
           const Spacer(),
           if (expiresLabel.isNotEmpty)
             Text(expiresLabel,
-                style: TextStyle(color: Colors.green.shade700, fontSize: 13)),
+                style: TextStyle(color: AppTheme.success, fontSize: 13)),
         ],
       ),
     );
@@ -193,8 +306,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             const SizedBox(height: 12),
             Text(
               subStatus == 'expired'
-                  ? 'Подписка истекла'
-                  : 'Платный курс',
+                  ? 'Subscription expired'
+                  : 'Paid course',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: cs.onSecondaryContainer,
                   ),
@@ -218,7 +331,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   Text(
                     _money(price),
                     style: TextStyle(
-                      color: cs.primary,
+                      color: cs.onSecondaryContainer,
                       fontWeight: FontWeight.w800,
                       fontSize: 18,
                     ),
@@ -232,17 +345,25 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     child: Text(
                       '-$discountPercent%',
                       style: TextStyle(
-                        color: cs.primary,
+                        color: cs.onSecondaryContainer,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Discounted price: ${_money(price)}',
+                style: TextStyle(
+                  color: cs.onSecondaryContainer,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               if ((discountEndsAtRaw ?? '').isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Скидка активна до: ${_fmtDateTime(discountEndsAtRaw!)}',
+                  'Discount ends: ${_fmtDateTime(discountEndsAtRaw!)}',
                   style: TextStyle(
                     color: cs.onSecondaryContainer,
                     fontWeight: FontWeight.w600,
@@ -259,11 +380,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
-                child: Text('Купить на 1 месяц — ${_money(price)}'),
+                child: Text('Buy 1 month — ${_money(price)}'),
               ),
             ],
             if (subStatus == 'expired') ...[
-              Text('Продлить доступ:',
+              Text('Extend access:',
                   style: TextStyle(color: cs.onSecondaryContainer)),
               const SizedBox(height: 12),
               ...(sub['renewal_options'] as List<dynamic>).map((opt) {
@@ -275,11 +396,17 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     onPressed: () => _handleRenew(prov, days),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 48),
+                      foregroundColor: cs.onSecondaryContainer,
+                      side: BorderSide(color: cs.onSecondaryContainer.withAlpha(180)),
+                      textStyle: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text(
-                        '$days ${days == 1 ? "день" : "дней"} — ${_money(optPrice)}'),
+                        '$days ${days == 1 ? "day" : "days"} — ${_money(optPrice)}'),
                   ),
                 );
               }),
@@ -294,14 +421,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Оплата не прошла'),
+        title: const Text('Payment failed'),
         content: SingleChildScrollView(
           child: Text(message),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Понятно'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -312,14 +439,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Подтверждение оплаты'),
+        title: const Text('Confirm purchase'),
         content: Text(
-          'С вашего счета спишется ${_money(price)} за доступ к курсу. Продолжить?',
+          '${_money(price)} will be charged from your wallet for course access. Continue?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -340,10 +467,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
       await prov.load(widget.courseId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Курс успешно оплачен!')),
+        const SnackBar(content: Text('Course purchased successfully')),
       );
     } else {
-      _showErrorDialog(prov.lastError ?? 'Не удалось оформить покупку.');
+      _showErrorDialog(prov.lastError ?? 'Purchase could not be completed.');
     }
   }
 
@@ -352,10 +479,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     if (!mounted) return;
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Подписка продлена на $days дн.!')),
+        SnackBar(content: Text('Subscription extended by $days day(s)')),
       );
     } else {
-      _showErrorDialog(prov.lastError ?? 'Не удалось продлить подписку.');
+      _showErrorDialog(prov.lastError ?? 'Could not renew subscription.');
     }
   }
 
@@ -372,6 +499,81 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
 
   String _money(String value) => '$value TJS';
 
+  Widget _buildUserCourseDataCard(
+    Map<String, dynamic> course,
+    CourseProvider prov,
+    Map<String, dynamic> sub,
+  ) {
+    final modules = (course['modules'] as List<dynamic>?) ?? const [];
+    final allLessonIds = <int>[];
+    for (final module in modules) {
+      final lessons = (module['lessons'] as List<dynamic>?) ?? const [];
+      for (final lesson in lessons) {
+        allLessonIds.add(lesson['id'] as int);
+      }
+    }
+
+    final totalLessons = allLessonIds.length;
+    final completedLessons = allLessonIds
+        .where((id) => prov.completedLessonIds.contains(id))
+        .length;
+    final progress = totalLessons == 0 ? 0.0 : completedLessons / totalLessons;
+    final progressPercent = (progress * 100).round();
+    final expiresAt = sub['expires_at'] as String?;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your progress',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 10),
+            Text('Lessons completed: $completedLessons of $totalLessons'),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(value: progress),
+            const SizedBox(height: 6),
+            Text('$progressPercent% complete'),
+            if ((expiresAt ?? '').isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Renews until: ${_fmtDateTime(expiresAt!)}'),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleContinue(Map<String, dynamic> course, CourseProvider prov) {
+    final nextModuleId = _findNextModuleId(course, prov);
+    final modules = (course['modules'] as List<dynamic>?) ?? const [];
+    if (nextModuleId != null) {
+      context.push('/course/${widget.courseId}/module/$nextModuleId');
+      return;
+    }
+    if (modules.isNotEmpty) {
+      context.push('/course/${widget.courseId}/module/${modules.first['id']}');
+    }
+  }
+
+  int? _findNextModuleId(Map<String, dynamic> course, CourseProvider prov) {
+    final modules = (course['modules'] as List<dynamic>?) ?? const [];
+    for (final module in modules) {
+      final lessons = (module['lessons'] as List<dynamic>?) ?? const [];
+      if (lessons.isEmpty) continue;
+      for (final lesson in lessons) {
+        final lessonId = lesson['id'] as int;
+        if (!prov.completedLessonIds.contains(lessonId)) {
+          return module['id'] as int;
+        }
+      }
+    }
+    return null;
+  }
+
   List<Widget> _buildModules(
       Map<String, dynamic> course, CourseProvider prov, ColorScheme cs) {
     return (course['modules'] as List<dynamic>).map((module) {
@@ -386,7 +588,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: completedCount == total && total > 0
-                ? Colors.green
+                ? AppTheme.success
                 : cs.primaryContainer,
             child: Icon(
               completedCount == total && total > 0
@@ -398,7 +600,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             ),
           ),
           title: Text(module['title'] as String),
-          subtitle: Text('$completedCount / $total уроков завершено'),
+          subtitle: Text('$completedCount / $total lessons completed'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push(
             '/course/${widget.courseId}/module/${module['id']}',
@@ -409,70 +611,93 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   }
 }
 
-/// Плеер с корректным dispose при смене URL / уходе со экрана.
-class _PublicDemoVideo extends StatefulWidget {
+/// YouTube thumbnail + dialog player (WebView is not inside scrollable lists).
+class _IntroVideoCard extends StatelessWidget {
+  const _IntroVideoCard({super.key, required this.url});
+
   final String url;
-
-  const _PublicDemoVideo({super.key, required this.url});
-
-  @override
-  State<_PublicDemoVideo> createState() => _PublicDemoVideoState();
-}
-
-class _PublicDemoVideoState extends State<_PublicDemoVideo> {
-  YoutubePlayerController? _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _init();
-  }
-
-  @override
-  void didUpdateWidget(covariant _PublicDemoVideo oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.url != widget.url) {
-      _controller?.dispose();
-      _controller = null;
-      _init();
-      setState(() {});
-    }
-  }
-
-  void _init() {
-    final id = YoutubePlayer.convertUrlToId(widget.url);
-    if (id == null) return;
-    _controller = YoutubePlayerController(
-      initialVideoId: id,
-      flags: const YoutubePlayerFlags(autoPlay: false),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final id = YoutubePlayer.convertUrlToId(widget.url);
-    if (id == null || _controller == null) {
+    final id = resolveYoutubeVideoId(url);
+    final cs = Theme.of(context).colorScheme;
+    if (id == null) {
       return Card(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(16),
           child: Text(
-            'Некорректная ссылка на видео. Укажите YouTube URL в админке.',
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
+            'Invalid YouTube URL. Update the link in the admin panel.',
+            style: TextStyle(color: cs.error),
           ),
         ),
       );
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: YoutubePlayer(
-        controller: _controller!,
-        showVideoProgressIndicator: true,
+    final thumb = 'https://img.youtube.com/vi/$id/hqdefault.jpg';
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(
+              builder: (ctx) => CoursePreviewPlayerScreen(
+                url: url,
+                title: 'Course introduction',
+              ),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(14),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  thumb,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => ColoredBox(
+                    color: cs.surfaceContainerHighest,
+                    child: Icon(Icons.play_circle_outline,
+                        size: 64, color: cs.onSurfaceVariant),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.5),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Icon(Icons.play_circle_filled,
+                  size: 56, color: Colors.white.withValues(alpha: 0.95)),
+              Positioned(
+                bottom: 10,
+                left: 12,
+                right: 12,
+                child: Text(
+                  'Watch intro video',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    shadows: const [
+                      Shadow(blurRadius: 10, color: Colors.black87),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

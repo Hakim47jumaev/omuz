@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_app_mark.dart';
+import '../../../core/widgets/omuz_ui.dart';
 import '../providers/auth_provider.dart';
 
 class PhoneScreen extends StatefulWidget {
@@ -21,28 +23,22 @@ class _PhoneScreenState extends State<PhoneScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
+      body: OmuzPage.background(
+        context: context,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(flex: 2),
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.school,
-                    size: 40, color: colorScheme.onPrimaryContainer),
-              ),
+              Center(child: OmuzMark(size: 80)),
               const SizedBox(height: 24),
               Text(
-                'OMuz',
+                'Omuz',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
                     ),
                 textAlign: TextAlign.center,
               ),
@@ -104,12 +100,12 @@ class _PhoneScreenState extends State<PhoneScreen> {
                   ),
                 ),
                 child: auth.loading
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: colorScheme.onPrimary,
                         ),
                       )
                     : const Text('Continue',
@@ -120,6 +116,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

@@ -6,7 +6,7 @@ from .models import Badge, UserXP, XPTransaction
 class UserXPSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserXP
-        fields = ("total_xp", "level")
+        fields = ("total_xp", "level", "current_streak", "best_streak", "last_activity_date")
 
 
 class BadgeSerializer(serializers.ModelSerializer):
@@ -24,6 +24,7 @@ class XPTransactionSerializer(serializers.ModelSerializer):
 
 
 class LeaderboardEntrySerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
     rank = serializers.IntegerField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()

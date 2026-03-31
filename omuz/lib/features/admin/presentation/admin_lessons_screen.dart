@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/omuz_ui.dart';
 import '../providers/admin_provider.dart';
 
 class AdminLessonsScreen extends StatefulWidget {
@@ -31,13 +32,28 @@ class _AdminLessonsScreenState extends State<AdminLessonsScreen> {
         child: const Icon(Icons.add),
       ),
       body: prov.loading && prov.lessons.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? OmuzPage.background(
+              context: context,
+              child: const Center(child: CircularProgressIndicator()),
+            )
           : prov.lessons.isEmpty
-              ? const Center(child: Text('No lessons yet'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: prov.lessons.length,
-                  itemBuilder: (context, index) {
+              ? OmuzPage.background(
+                  context: context,
+                  child: Center(
+                    child: Text(
+                      'No lessons yet',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                )
+              : OmuzPage.background(
+                  context: context,
+                  child: ListView.builder(
+                    padding: OmuzPage.padding,
+                    itemCount: prov.lessons.length,
+                    itemBuilder: (context, index) {
                     final lesson = prov.lessons[index] as Map<String, dynamic>;
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
@@ -57,7 +73,11 @@ class _AdminLessonsScreenState extends State<AdminLessonsScreen> {
                                   _showLessonDialog(context, prov, lesson: lesson),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                              icon: Icon(
+                                Icons.delete,
+                                color: Theme.of(context).colorScheme.error,
+                                size: 20,
+                              ),
                               onPressed: () =>
                                   prov.deleteLesson(lesson['id'] as int, widget.moduleId),
                             ),
@@ -69,7 +89,8 @@ class _AdminLessonsScreenState extends State<AdminLessonsScreen> {
                         ),
                       ),
                     );
-                  },
+                    },
+                  ),
                 ),
     );
   }
